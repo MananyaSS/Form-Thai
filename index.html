@@ -1,0 +1,118 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>ลงทะเบียนอย่างไว 🚀</title>
+  <style>
+    :root { --fg:#111; --bg:#fafafa; --accent:#0ea5e9; --muted:#6b7280; }
+    *{box-sizing:border-box} body{font-family:system-ui,-apple-system,Segoe UI,Roboto,Inter,Arial,sans-serif;background:var(--bg);color:var(--fg);margin:0}
+    .wrap{max-width:560px;margin:4rem auto;padding:2rem;background:#fff;border-radius:20px;box-shadow:0 10px 30px rgba(0,0,0,.07)}
+    h1{margin:0 0 1.25rem;font-weight:800;letter-spacing:.2px}
+    p.lead{margin:.25rem 0 1.5rem;color:var(--muted)}
+    label{display:block;font-weight:600;margin:.75rem 0 .4rem}
+    input{width:100%;padding:.85rem 1rem;border:1px solid #e5e7eb;border-radius:12px;font-size:16px;outline:none}
+    input:focus{border-color:var(--accent);box-shadow:0 0 0 4px rgba(14,165,233,.15)}
+    .row{display:grid;grid-template-columns:1fr 1fr;gap:.9rem}
+    .actions{display:flex;gap:.6rem;margin-top:1.2rem}
+    button{appearance:none;border:0;background:var(--accent);color:#fff;padding:.9rem 1.2rem;border-radius:12px;font-weight:700;cursor:pointer}
+    button[disabled]{opacity:.6;cursor:not-allowed}
+    .ghost{background:#eef6ff;color:#0369a1}
+    .note{font-size:.9rem;color:var(--muted);margin-top:.75rem}
+    .toast{margin-top:1rem;padding:.85rem 1rem;border-radius:12px;display:none}
+    .toast.ok{background:#ecfdf5;color:#065f46}
+    .toast.err{background:#fef2f2;color:#991b1b}
+    footer{margin-top:2rem;color:var(--muted);font-size:.85rem}
+    .req{color:#ef4444}
+  </style>
+</head>
+<body>
+  <main class="wrap">
+    <h1>แบบฟอร์มบันทึกข้อมูล</h1>
+    <p class="lead">กรอกนิดเดียว แล้วบินไปลง Google Sheet ให้อัตโนมัติ ✈️</p>
+
+    <form id="theForm">
+      <div class="row">
+        <div>
+          <label for="firstName">ชื่อ <span class="req">*</span></label>
+          <input id="firstName" name="firstName" placeholder="เช่น มนัส" required />
+        </div>
+        <div>
+          <label for="lastName">นามสกุล <span class="req">*</span></label>
+          <input id="lastName" name="lastName" placeholder="เช่น ใจดี" required />
+        </div>
+      </div>
+
+      <div class="row">
+        <div>
+          <label for="villageNo">หมู่ที่ <span class="req">*</span></label>
+          <input id="villageNo" name="villageNo" inputmode="numeric" pattern="^\d{1,3}$" placeholder="เช่น 3" required />
+        </div>
+        <div>
+          <label for="phone">เบอร์โทรศัพท์ <span class="req">*</span></label>
+          <input id="phone" name="phone" inputmode="tel" pattern="^0\d{8,9}$" placeholder="เช่น 0812345678" required />
+        </div>
+      </div>
+      <div class="note">* เบอร์ไทยขึ้นต้น 0 ตามด้วย 9–10 หลัก</div>
+
+      <div class="actions">
+        <button id="submitBtn" type="submit">บันทึกลงชีต</button>
+        <button class="ghost" type="reset">ล้างฟอร์ม</button>
+      </div>
+
+      <div id="toastOK" class="toast ok">บันทึกเรียบร้อย ✅</div>
+      <div id="toastERR" class="toast err">บันทึกไม่สำเร็จ ลองใหม่อีกครั้งนะ ❌</div>
+    </form>
+
+    <footer>
+      <div>Tips: เปลี่ยนค่า <code>https://script.google.com/macros/s/AKfycbz6r7-ppO2D5n-yRHYTsTII6beJ_twn5kbHRGHgFsruWNV1B8EY8trbvrUIV6yKY8MkQQ/exec</code> ในไฟล์ให้เป็นลิงก์ Web App ของ Google Apps Script</div>
+    </footer>
+  </main>
+
+  <script>
+    // 👉 วางลิงก์ Web App (จาก Apps Script) ตรงนี้
+    const scriptUrl = "https://script.google.com/macros/s/AKfycbz6r7-ppO2D5n-yRHYTsTII6beJ_twn5kbHRGHgFsruWNV1B8EY8trbvrUIV6yKY8MkQQ/exec";
+
+    const form = document.getElementById("theForm");
+    const btn = document.getElementById("submitBtn");
+    const ok = document.getElementById("toastOK");
+    const err = document.getElementById("toastERR");
+
+    function show(el){ el.style.display = "block"; setTimeout(()=> el.style.display = "none", 2600); }
+
+    form.addEventListener("submit", async (e) => {
+      e.preventDefault();
+      if (!form.reportValidity()) return;
+
+      btn.disabled = true; btn.textContent = "กำลังบันทึก...";
+
+      const data = {
+        firstName: form.firstName.value.trim(),
+        lastName: form.lastName.value.trim(),
+        villageNo: form.villageNo.value.trim(),
+        phone: form.phone.value.trim()
+      };
+
+      // ใช้ x-www-form-urlencoded เพื่อลดปัญหา CORS/preflight
+      const body = Object.entries(data)
+        .map(([k,v]) => encodeURIComponent(k) + "=" + encodeURIComponent(v))
+        .join("&");
+
+      try {
+        const res = await fetch(scriptUrl, {
+          method: "POST",
+          headers: { "Content-Type": "application/x-www-form-urlencoded" },
+          body
+        });
+        if (res.ok) {
+          form.reset(); show(ok);
+        } else { show(err); }
+      } catch (e) {
+        show(err);
+      } finally {
+        btn.disabled = false; btn.textContent = "บันทึกลงชีต";
+      }
+    });
+  </script>
+</body>
+</html>
